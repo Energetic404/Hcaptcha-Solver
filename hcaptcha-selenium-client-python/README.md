@@ -82,6 +82,7 @@ ok = client.run(
     wait_captcha_timeout=None,           # None = wait forever
     delay_after_captcha_load=5.0,        # Seconds before first screenshot (avoid blank)
     captcha_opens_automatically=False,   # True if page opens captcha (e.g. Discord)
+    after_solve=None,                    # Optional callback(driver) after solve (e.g. click submit)
 )
 ```
 
@@ -89,18 +90,23 @@ ok = client.run(
 
 ```python
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from kenzx_captcha import RemoteCaptchaClient
 
 driver = webdriver.Chrome()
 driver.get("https://yoursite.com/login")
 
 client = RemoteCaptchaClient("https://hcaptchasolver.com", "Kenzx_YOUR_KEY")
+def click_submit(driver):
+    driver.find_element(By.XPATH, "//*[@id='hcaptcha-demo-submit']").click()
+
 task_id = client.solve(
     driver,
     page_url=driver.current_url,
     wait_captcha_timeout=60,
     delay_after_captcha_load=5.0,
     captcha_opens_automatically=False,
+    after_solve=click_submit,  # optional: run action with driver after solve
 )
 # task_id when solved, None on failure
 ```
@@ -115,6 +121,7 @@ task_id = client.solve(
 | **wait_captcha_timeout** | Max seconds to wait for captcha to appear. `None` = wait indefinitely. |
 | **delay_after_captcha_load** | Seconds to wait after captcha is visible before sending the first screenshot (default `5`). Reduces null/blank screenshots. |
 | **captcha_opens_automatically** | If `True`, the library does **not** click the checkbox; the page opens the captcha (e.g. Discord). Library only waits for it to load. |
+| **after_solve** | Optional `callback(driver)` run after a successful solve (e.g. click submit button). Use with `run()` or `solve()`. |
 | **stable_mode** | (Python) Chrome flags to reduce crashes on heavy sites (e.g. Discord). Auto-enabled when `page_url` contains `discord.com`. |
 | **keep_browser_open** | If `True`, browser stays open after solve until you press Enter. |
 | **headless** | Run browser in headless mode. |
@@ -136,6 +143,7 @@ task_id = client.solve(
 | `HCAPTCHA_OPENS_AUTOMATICALLY` | `1` or `true` if the page opens the captcha (e.g. Discord). |
 | `HCAPTCHA_STABLE_MODE` | `1` or `true` for stable mode. |
 | `HCAPTCHA_KEEP_OPEN` | `0` or `false` to close browser right after solve. |
+| `HCAPTCHA_CLICK_SUBMIT_AFTER_SOLVE` | `1` or `true` to click the submit button after solve (e.g. demo page `#hcaptcha-demo-submit`). |
 | `HCAPTCHA_HEADLESS` | `1` or `true` for headless. |
 
 **Run with custom page (e.g. Discord):**

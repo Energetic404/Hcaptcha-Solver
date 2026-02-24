@@ -16,9 +16,12 @@ Environment:
   HCAPTCHA_KEEP_OPEN  - "0" or "false" to close browser immediately after solve
   HCAPTCHA_OPENS_AUTOMATICALLY - "1" or "true" if the page opens the captcha itself (e.g. Discord).
       When set, the library does NOT click the checkbox; it only waits for the captcha to be visible and loaded.
+  HCAPTCHA_CLICK_SUBMIT_AFTER_SOLVE - "1" or "true" to click the submit button after solve (e.g. hCaptcha demo #hcaptcha-demo-submit).
 """
 import os
 import sys
+
+from selenium.webdriver.common.by import By
 
 from kenzx_captcha import RemoteCaptchaClient
 
@@ -36,6 +39,23 @@ def _env_float(name: str, default: float | None = None) -> float | None:
         return float(v)
     except ValueError:
         return default
+
+
+def _click_demo_submit_after_solve(driver):
+    """Optional after_solve action: click the hCaptcha demo page submit button."""
+    try:
+        el = driver.find_element(By.XPATH, "//*[@id='hcaptcha-demo-submit']")
+        if el:
+            el.click()
+            print("[kenzx_captcha] Clicked submit button.", flush=True)
+    except Exception:
+        try:
+            el = driver.find_element(By.XPATH, "/html/body/div[5]/form/fieldset/ul/li[3]/input")
+            if el:
+                el.click()
+                print("[kenzx_captcha] Clicked submit button.", flush=True)
+        except Exception:
+            pass
 
 
 def main() -> int:
@@ -73,6 +93,10 @@ def main() -> int:
     # --- Optional: page opens captcha automatically (e.g. Discord). If True, we don't click checkbox, only wait for load ---
     captcha_opens_automatically = _env_bool("HCAPTCHA_OPENS_AUTOMATICALLY") or ("discord.com" in page_url.lower())
 
+    # --- Optional: after solve, run an action with the driver (e.g. click submit on demo page) ---
+    click_submit_after = _env_bool("HCAPTCHA_CLICK_SUBMIT_AFTER_SOLVE", False)
+    after_solve = _click_demo_submit_after_solve if click_submit_after else None
+
     client = RemoteCaptchaClient(server_url, api_key)
     ok = client.run(
         page_url=page_url,
@@ -83,6 +107,7 @@ def main() -> int:
         wait_captcha_timeout=wait_timeout,
         delay_after_captcha_load=delay_after_load,
         captcha_opens_automatically=captcha_opens_automatically,
+        after_solve=after_solve,
     )
     return 0 if ok else 1
 

@@ -9,8 +9,15 @@
 //   HCAPTCHA_DELAY_AFTER_LOAD  - Seconds to wait after captcha loads before first screenshot (default: 5)
 //   HCAPTCHA_KEEP_OPEN         - "0" or "false" to close browser immediately after solve
 //   HCAPTCHA_OPENS_AUTOMATICALLY - "1" or "true" if the page opens the captcha (e.g. Discord). Library does not click checkbox, only waits for load.
+//
+// Config: set env vars in the shell, or use a .env file in the app directory (copy .env.example to .env and edit).
 
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 using KenzxCaptcha.Remote;
+
+// Load .env file if present (sets environment variables from KEY=VALUE lines)
+LoadEnvFile();
 
 var serverUrl = args.Length > 0 && args[0].StartsWith("http")
     ? args[0]
@@ -58,8 +65,66 @@ if (pageUrl.Contains("discord.com", StringComparison.OrdinalIgnoreCase))
 Console.WriteLine($"Server: {serverUrl}");
 Console.WriteLine($"Page:   {pageUrl}");
 var client = new RemoteCaptchaClient(serverUrl, clientKey);
-// RunAsync(pageUrl, keepBrowserOpen) - use 2 args so it compiles. For timeout/delay/captchaOpensAutomatically use the full overload:
-// await client.RunAsync(pageUrl, keepOpen, waitTimeout, delayAfterLoad, captchaOpensAuto);
-var ok = await client.RunAsync(pageUrl, keepOpen);
+
+var options = new ChromeOptions();
+options.AddArgument("--disable-blink-features=AutomationControlled");
+options.AddExcludedArgument("enable-automation");
+options.AddArgument("--disable-dev-shm-usage");
+using var driver = new ChromeDriver(options);
+driver.Manage().Window.Size = new System.Drawing.Size(1280, 720);
+driver.Navigate().GoToUrl(pageUrl);
+
+var taskId = await client.SolveAsync(driver, pageUrl, waitTimeout, delayAfterLoad, captchaOpensAuto);
+var ok = taskId != null;
+
+if (ok)
+{
+    // After captcha solved: click the demo submit button (hCaptcha demo page)
+    try
+    {
+        var submit = driver.FindElement(By.XPath("//*[@id='hcaptcha-demo-submit']"));
+        submit?.Click();
+        Console.WriteLine("Clicked submit button.");
+    }
+    catch (NoSuchElementException)
+    {
+        try
+        {
+            var submit = driver.FindElement(By.XPath("/html/body/div[5]/form/fieldset/ul/li[3]/input"));
+            submit?.Click();
+            Console.WriteLine("Clicked submit button (full path).");
+        }
+        catch { /* page may not have the demo submit button */ }
+    }
+}
+
+if (keepOpen)
+{
+    Console.WriteLine("Press Enter to close the browser...");
+    Console.ReadLine();
+}
 
 return ok ? 0 : 1;
+
+static void LoadEnvFile()
+{
+    // Prefer current directory (project folder when using dotnet run), then app base
+    var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+    if (!File.Exists(envPath))
+        envPath = Path.Combine(AppContext.BaseDirectory, ".env");
+    if (!File.Exists(envPath))
+        return;
+    foreach (var line in File.ReadAllLines(envPath))
+    {
+        var s = line.Trim();
+        if (s.Length == 0 || s[0] == '#') continue;
+        var eq = s.IndexOf('=');
+        if (eq <= 0) continue;
+        var key = s[0..eq].Trim();
+        var value = s[(eq + 1)..].Trim();
+        if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
+            value = value[1..^1].Replace("\\\"", "\"");
+        if (string.IsNullOrEmpty(key)) continue;
+        Environment.SetEnvironmentVariable(key, value, EnvironmentVariableTarget.Process);
+    }
+}

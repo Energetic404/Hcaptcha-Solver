@@ -58,16 +58,16 @@ internal static class SolverHelper
         Thread.Sleep(800);
         if (captchaOpensAutomatically)
             return; // Page opens captcha; do not click. WaitForCaptchaExpanded will wait until it is visible.
-        var iframes = driver.FindElements(By.CssSelector("iframe[src*='hcaptcha.com']"));
+        var frames = driver.FindElements(By.CssSelector("iframe[src*='hcaptcha.com']"));
         IWebElement? checkboxFrame = null;
-        foreach (var f in iframes)
+        foreach (var f in frames)
         {
             var w = f.Size.Width;
             var h = f.Size.Height;
             if (w >= MinCaptchaBoxSize && h >= MinCaptchaBoxSize) continue;
             if (w >= 50 && h >= 50) { checkboxFrame = f; break; }
         }
-        checkboxFrame ??= iframes[0];
+        checkboxFrame ??= frames[0];
         driver.SwitchTo().Frame(checkboxFrame);
         try
         {

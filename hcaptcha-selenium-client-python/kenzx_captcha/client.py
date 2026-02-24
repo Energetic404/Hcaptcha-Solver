@@ -8,7 +8,7 @@ Use solve() with your own WebDriver for more control (e.g. custom navigation).
 from __future__ import annotations
 
 import traceback
-from typing import Optional, Any
+from typing import Optional, Any, Callable
 
 from selenium import webdriver
 
@@ -104,6 +104,7 @@ class RemoteCaptchaClient:
         wait_captcha_timeout: Optional[float] = None,
         delay_after_captcha_load: float = 5.0,
         captcha_opens_automatically: bool = False,
+        after_solve: Optional[Callable[[Any], None]] = None,
     ) -> Optional[str]:
         """
         Solve the captcha on the current page. Driver must already be on a page with hCaptcha.
@@ -112,9 +113,10 @@ class RemoteCaptchaClient:
             screenshot (default 5) to avoid null/blank screenshots while the widget is still rendering.
         captcha_opens_automatically: if True, do not click the checkbox; the page opens the captcha
             (e.g. Discord). Library only waits for it to be visible and expanded.
+        after_solve: optional callback(driver) run after a successful solve (e.g. click submit button).
         Returns task_id if successful, None if create task failed.
         """
-        return run_solve(
+        task_id = run_solve(
             driver,
             self._api,
             page_url,
@@ -122,6 +124,12 @@ class RemoteCaptchaClient:
             delay_after_captcha_load=delay_after_captcha_load,
             captcha_opens_automatically=captcha_opens_automatically,
         )
+        if task_id is not None and after_solve is not None:
+            try:
+                after_solve(driver)
+            except Exception as e:
+                _log("after_solve callback error: %s" % e)
+        return task_id
 
     def run(
         self,
@@ -133,6 +141,7 @@ class RemoteCaptchaClient:
         wait_captcha_timeout: Optional[float] = None,
         delay_after_captcha_load: float = 5.0,
         captcha_opens_automatically: bool = False,
+        after_solve: Optional[Callable[[Any], None]] = None,
     ) -> bool:
         """
         Open Chrome, load page_url, solve the captcha (worker solves remotely), then quit or wait.
@@ -143,6 +152,7 @@ class RemoteCaptchaClient:
             screenshot (default 5) to avoid null/blank screenshots.
         captcha_opens_automatically: if True, do not click the checkbox; the page opens the captcha
             (e.g. Discord). Library only waits for it to be visible and expanded.
+        after_solve: optional callback(driver) run after a successful solve (e.g. click submit button).
         Returns True if solved successfully, False on error.
         """
         if stable_mode is None:
@@ -168,6 +178,11 @@ class RemoteCaptchaClient:
             if task_id is None:
                 _log("Solve failed (create task or captcha not ready)")
                 return False
+            if after_solve is not None:
+                try:
+                    after_solve(driver)
+                except Exception as e:
+                    _log("after_solve callback error: %s" % e)
             if keep_browser_open:
                 _log("Press Enter to close the browser...")
                 input("Press Enter to close the browser...")

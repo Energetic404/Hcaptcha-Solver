@@ -31,6 +31,14 @@ public class RemoteCaptchaClient
     /// <param name="delayAfterCaptchaLoadSeconds">Seconds to wait after captcha is visible before sending first screenshot (default 5) to avoid null/blank screenshots.</param>
     /// <param name="captchaOpensAutomatically">If true, do not click the checkbox; the page opens the captcha (e.g. Discord). Library only waits for it to be visible and expanded.</param>
     /// <returns>Task ID if successful, null otherwise.</returns>
+    public Task<string?> SolveAsync(
+        IWebDriver driver,
+        string pageUrl,
+        TimeSpan? waitCaptchaTimeout,
+        double delayAfterCaptchaLoadSeconds,
+        bool captchaOpensAutomatically) =>
+        SolveAsync(driver, pageUrl, waitCaptchaTimeout, delayAfterCaptchaLoadSeconds, captchaOpensAutomatically, default);
+
     public async Task<string?> SolveAsync(
         IWebDriver driver,
         string pageUrl = "https://accounts.hcaptcha.com/demo",

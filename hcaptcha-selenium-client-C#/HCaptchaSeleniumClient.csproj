@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KenzxCaptcha.Remote\KenzxCaptcha.Remote.csproj" />
+    <PackageReference Include="Selenium.WebDriver" Version="4.21.0" />
   </ItemGroup>
 
 </Project>
