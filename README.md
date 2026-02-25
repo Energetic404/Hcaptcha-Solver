@@ -3,8 +3,9 @@
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Playwright](https://img.shields.io/badge/playwright-1.40+-green.svg)](https://playwright.dev/python/)
 
-Client libraries and example apps for **[hcaptchasolver.com](https://hcaptchasolver.com)** **remote captcha** solving: open any page with hCaptcha in a real browser (Chrome), and a worker solves it for you. One repo contains the **C# library**, the **C# example app**, and the **Python client** (library + example).
+Client libraries and example apps for **[hcaptchasolver.com](https://hcaptchasolver.com)** **remote captcha** solving: open any page with hCaptcha in a real browser (Chrome), and a worker solves it for you. One repo contains the **C# library**, the **C# example app**, the **Python client** (Selenium, library + example), and a **Python Playwright example**.
 
 ---
 
@@ -14,9 +15,10 @@ Client libraries and example apps for **[hcaptchasolver.com](https://hcaptchasol
 |------|-------------|
 | **`KenzxCaptcha.Remote/`** | .NET 8 **library** — use in your C# app to solve hCaptcha remotely. |
 | **`hcaptcha-selenium-client-C#/`** | C# **example app** — console app that uses the library; run as-is or copy patterns. |
-| **`hcaptcha-selenium-client-python/`** | Python **library + example** — `kenzx_captcha` package and `main.py` demo script. |
+| **`hcaptcha-selenium-client-python/`** | Python **library + example** — `kenzx_captcha` package (Selenium) and `main.py` demo. |
+| **`hcaptcha-playwright-client-python/`** | Python **Playwright example** — same remote flow using Playwright (Chromium) instead of Selenium. |
 
-All three talk to the same platform: you get an API key from [hcaptchasolver.com](https://hcaptchasolver.com), open a page with hCaptcha, and a worker solves it remotely (you never expose your proxy; the worker only sees the captcha area).
+All of them talk to the same platform: you get an API key from [hcaptchasolver.com](https://hcaptchasolver.com), open a page with hCaptcha, and a worker solves it remotely (you never expose your proxy; the worker only sees the captcha area).
 
 ---
 
@@ -67,6 +69,29 @@ python main.py https://hcaptchasolver.com Kenzx_YOUR_KEY
 
 ---
 
+### Python (Playwright example)
+
+**Requirements:** Python 3.9+, Playwright (Chromium), API key from [hcaptchasolver.com](https://hcaptchasolver.com) (format `Kenzx_...`).
+
+```bash
+cd hcaptcha-playwright-client-python
+pip install -r requirements.txt
+playwright install chromium
+
+export HCAPTCHA_CLIENT_KEY="Kenzx_YOUR_API_KEY"
+python main.py
+```
+
+Or pass server and key as arguments:
+
+```bash
+python main.py https://hcaptchasolver.com Kenzx_YOUR_KEY
+```
+
+**Details:** [hcaptcha-playwright-client-python/README.md](hcaptcha-playwright-client-python/README.md).
+
+---
+
 ## Repository layout
 
 ```
@@ -87,8 +112,16 @@ Hcaptcha-Solver/
 │   ├── .env.example
 │   └── README.md
 │
-└── hcaptcha-selenium-client-python/  ← Python library + example
-    ├── kenzx_captcha/                 (package: client, api_client, _solver)
+├── hcaptcha-selenium-client-python/  ← Python library + example (Selenium)
+│   ├── kenzx_captcha/                 (package: client, api_client, _solver)
+│   ├── main.py                        (example script)
+│   ├── requirements.txt
+│   ├── README.md
+│   └── LICENSE
+│
+└── hcaptcha-playwright-client-python/  ← Python example (Playwright)
+    ├── api_client.py                  (remote-session API)
+    ├── solver_playwright.py            (solve flow)
     ├── main.py                        (example script)
     ├── requirements.txt
     ├── README.md
@@ -188,6 +221,17 @@ Full docs: [hcaptcha-selenium-client-python/README.md](hcaptcha-selenium-client-
 
 ---
 
+## Python — Playwright example (hcaptcha-playwright-client-python)
+
+- **Same remote flow** as the Selenium client, but uses **Playwright** (Chromium) for browser automation.
+- **Standalone example** — `api_client.py`, `solver_playwright.py`, and `main.py`; no separate package.
+- **Config:** env vars (e.g. `HCAPTCHA_CLIENT_KEY`, `HCAPTCHA_PAGE_URL`, `HCAPTCHA_HEADLESS`) or CLI args.
+
+**Quick start:** `pip install -r requirements.txt && playwright install chromium`, then `export HCAPTCHA_CLIENT_KEY="Kenzx_..." && python main.py`.  
+Full docs: [hcaptcha-playwright-client-python/README.md](hcaptcha-playwright-client-python/README.md).
+
+---
+
 ## How it works (all clients)
 
 1. You (or the library) create a **RemoteCaptchaTask** via the platform API.
@@ -203,11 +247,11 @@ Full API and task types: [hcaptchasolver.com/api-docs](https://hcaptchasolver.co
 
 ## Requirements summary
 
-| | C# | Python |
-|---|----|--------|
-| **Runtime** | .NET 8.0 SDK | Python 3.9+ |
-| **Browser** | Chrome | Chrome |
-| **API key** | From [hcaptchasolver.com](https://hcaptchasolver.com) (Dashboard → API Keys) | Same |
+| | C# | Python (Selenium) | Python (Playwright) |
+|---|----|--------|--------|
+| **Runtime** | .NET 8.0 SDK | Python 3.9+ | Python 3.9+ |
+| **Browser** | Chrome | Chrome | Chromium (Playwright) |
+| **API key** | From [hcaptchasolver.com](https://hcaptchasolver.com) (Dashboard → API Keys) | Same | Same |
 
 ---
 
